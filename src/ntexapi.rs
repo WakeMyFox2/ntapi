@@ -2785,10 +2785,17 @@ pub unsafe fn NtGetTickCount64() -> ULONGLONG {
         *tick_count.QuadPart_mut() = addr_of!((*USER_SHARED_DATA).u.TickCountQuad).read_unaligned();
     }
     #[cfg(target_arch = "x86")] {
-        // x86 specific code here
+        loop {
+            tick_count.s_mut().HighPart = read_volatile(&(*USER_SHARED_DATA).u.TickCount.High1Time) as u32;
+            tick_count.s_mut().LowPart = read_volatile(&(*USER_SHARED_DATA).u.TickCount.LowPart);
+            if tick_count.s().HighPart == read_volatile(&(*USER_SHARED_DATA).u.TickCount.High2Time) as u32 {
+                break;
+            }
+            spin_loop();
+        }
     }
     *tick_count.QuadPart_mut()
-}
+}{
     #[cfg(target_arch = "x86")] {
         loop {
             tick_count.s_mut().HighPart =
@@ -2808,7 +2815,6 @@ pub unsafe fn NtGetTickCount64() -> ULONGLONG {
         (*USER_SHARED_DATA).TickCountMultiplier,
     ) << 8)
 }
-
 #[inline]
 pub unsafe fn NtGetTickCount() -> ULONG {
     #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))] {
