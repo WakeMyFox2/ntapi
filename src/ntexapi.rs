@@ -2795,7 +2795,7 @@ pub unsafe fn NtGetTickCount64() -> ULONGLONG {
         }
     }
     *tick_count.QuadPart_mut()
-}{
+}
     #[cfg(target_arch = "x86")] {
         loop {
             tick_count.s_mut().HighPart =
