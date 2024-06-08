@@ -2782,8 +2782,14 @@ pub const USER_SHARED_DATA: *const KUSER_SHARED_DATA = 0x7ffe0000 as *const _;
 pub unsafe fn NtGetTickCount64() -> ULONGLONG {
     let mut tick_count: ULARGE_INTEGER = MaybeUninit::zeroed().assume_init();
     #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))] {
-        *tick_count.QuadPart_mut() = read_volatile(addr_of!((*USER_SHARED_DATA).u.TickCountQuad));
+        *tick_count.QuadPart_mut() = addr_of!((*USER_SHARED_DATA).u.TickCountQuad).read_unaligned();
     }
+    #[cfg(target_arch = "x86")]
+    {
+        // x86 specific code here
+    }
+    *tick_count.QuadPart_mut()
+}
     #[cfg(target_arch = "x86")] {
         loop {
             tick_count.s_mut().HighPart =
@@ -2806,8 +2812,8 @@ pub unsafe fn NtGetTickCount64() -> ULONGLONG {
 #[inline]
 pub unsafe fn NtGetTickCount() -> ULONG {
     #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))] {
-        ((read_volatile(addr_of!((*USER_SHARED_DATA).u.TickCountQuad))
-            * (*USER_SHARED_DATA).TickCountMultiplier as u64) >> 24) as u32
+        (addr_of!((*USER_SHARED_DATA).u.TickCountQuad).read_unaligned()
+            * (*USER_SHARED_DATA).TickCountMultiplier as u64) >> 24 as u32
     }
     #[cfg(target_arch = "x86")] {
         let mut tick_count: ULARGE_INTEGER = MaybeUninit::zeroed().assume_init();
