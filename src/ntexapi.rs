@@ -2785,45 +2785,44 @@ pub unsafe fn NtGetTickCount64() -> ULONGLONG {
     {
         *tick_count.QuadPart_mut() = core::ptr::read_unaligned(&(*USER_SHARED_DATA).u.TickCountQuad);
     }
+
     #[cfg(target_arch = "x86")]
-    {
-        loop {
-            tick_count.s_mut().HighPart = core::ptr::read_volatile(&(*USER_SHARED_DATA).u.TickCount.High1Time) as u32;
-            tick_count.s_mut().LowPart = core::ptr::read_volatile(&(*USER_SHARED_DATA).u.TickCount.LowPart);
-            if tick_count.s().HighPart == core::ptr::read_volatile(&(*USER_SHARED_DATA).u.TickCount.High2Time) as u32 {
-                break;
-            }
-            spin_loop();
+    loop {
+        tick_count.s_mut().HighPart = core::ptr::read_volatile(&(*USER_SHARED_DATA).u.TickCount.High1Time) as u32;
+        tick_count.s_mut().LowPart = core::ptr::read_volatile(&(*USER_SHARED_DATA).u.TickCount.LowPart);
+        if tick_count.s().HighPart == core::ptr::read_volatile(&(*USER_SHARED_DATA).u.TickCount.High2Time) as u32 {
+            break;
         }
     }
-    *tick_count.QuadPart_mut()
-}
-    #[cfg(target_arch = "x86")] {
-        loop {
-            tick_count.s_mut().HighPart =
-                read_volatile(&(*USER_SHARED_DATA).u.TickCount.High1Time) as u32;
-            tick_count.s_mut().LowPart = read_volatile(&(*USER_SHARED_DATA).u.TickCount.LowPart);
-            if tick_count.s().HighPart == read_volatile(&(*USER_SHARED_DATA).u.TickCount.High2Time)
-                as u32
-            {
-                break;
-            }
-            spin_loop();
+
+    *tick_count.QuadPart_mut() = core::ptr::read_unaligned(&(*USER_SHARED_DATA).u.TickCountQuad);
+
+    #[cfg(target_arch = "x86")]
+    loop {
+        tick_count.s_mut().HighPart = core::ptr::read_volatile(&(*USER_SHARED_DATA).u.TickCount.High1Time) as u32;
+        tick_count.s_mut().LowPart = core::ptr::read_volatile(&(*USER_SHARED_DATA).u.TickCount.LowPart);
+        if tick_count.s().HighPart == core::ptr::read_volatile(&(*USER_SHARED_DATA).u.TickCount.High2Time) as u32 {
+            break;
         }
-    
-    (UInt32x32To64(tick_count.s().LowPart, (*USER_SHARED_DATA).TickCountMultiplier) >> 24)
-        + (UInt32x32To64(
+        spin_loop();
+    }
+
+    (UInt32x32To64(tick_count.s().LowPart, (*USER_SHARED_DATA).TickCountMultiplier) >> 24) +
+    (UInt32x32To64(
         tick_count.s().HighPart as u32,
         (*USER_SHARED_DATA).TickCountMultiplier,
     ) << 8)
 }
+
 #[inline]
 pub unsafe fn NtGetTickCount() -> ULONG {
     #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
     {
         ((core::ptr::read_volatile(&(*USER_SHARED_DATA).u.TickCountQuad)
-            * (*USER_SHARED_DATA).TickCountMultiplier as u64) >> 24) as u32
+            * (*USER_SHARED_DATA).TickCountMultiplier as u64)
+            >> 24) as u32
     }
+
     #[cfg(target_arch = "x86")]
     {
         let mut tick_count: ULARGE_INTEGER = MaybeUninit::zeroed().assume_init();
@@ -2833,12 +2832,13 @@ pub unsafe fn NtGetTickCount() -> ULONG {
             if tick_count.s().HighPart == core::ptr::read_volatile(&(*USER_SHARED_DATA).u.TickCount.High2Time) as u32 {
                 break;
             }
-            spin_loop();
         }
+
         (UInt32x32To64(tick_count.s().LowPart, (*USER_SHARED_DATA).TickCountMultiplier) >> 24)
             + (UInt32x32To64(tick_count.s().HighPart as u32, (*USER_SHARED_DATA).TickCountMultiplier) << 8)
     }
 }
+
 EXTERN!{extern "system" {
     fn NtQueryDefaultLocale(
         UserProfile: BOOLEAN,
