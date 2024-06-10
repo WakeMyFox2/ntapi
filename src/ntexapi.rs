@@ -2810,7 +2810,7 @@ pub unsafe fn NtGetTickCount64() -> ULONGLONG {
             }
             spin_loop();
         }
-    }
+    
     (UInt32x32To64(tick_count.s().LowPart, (*USER_SHARED_DATA).TickCountMultiplier) >> 24)
         + (UInt32x32To64(
         tick_count.s().HighPart as u32,
